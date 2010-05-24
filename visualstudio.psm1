@@ -159,3 +159,28 @@ function Get-CsprojInfo {
     }
 	}
 }
+
+function Get-CsprojsFromSln
+{
+  param(
+    [Parameter(Mandatory=$true)]
+    [string]
+    $SlnPath,
+    [Parameter(Mandatory=$false)]
+    [switch]
+    $FullPaths
+  )
+  # from text like Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gtr.Remote.Api", "Remote.Api\Gtr.Remote.Api.csproj", "{3C1D5E4B-A1B8-4992-A2A5-33D25066F22C}"
+  # parses Remote.Api\Gtr.Remote.Api.csproj
+  $r = New-Object text.regularexpressions.regex '^Project\([^)]+\)\s*=\s*"[^"]+",\s*"(?<csprojPath>[^"]+)"', 'multiline'
+  $content = (Get-Content $SlnPath) -join "`r`n"
+  $r.Matches($content) | 
+    % { $_.Groups["csprojPath"].Value} | 
+    ? { $_.EndsWith(".csproj") } |
+    % { if ($FullPaths) {
+          join-path (split-path $SlnPath) $_
+        } else {
+          $_
+        }
+    }
+}
