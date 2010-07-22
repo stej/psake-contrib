@@ -1,16 +1,37 @@
 function Show-TasksDependencies
 {
+<#
+.SYNOPSIS
+Shows graphically tasks that gets called
+
+.PARAMETER psakefile
+File with psake build script
+
+.PARAMETER taskList
+Tasks that that should be visualized
+
+.EXAMPLE
+ipmo d:\psake-contrib\debugging.psm1; Show-TasksDependencies d:\UdpLogViewer\psake-build.ps1 -taskList Full
+
+Shows what tasks are called when Full task is specified during Invoke-Psake buildfile Full
+
+Assumes that psake module is on a default path "$PsscriptRoot\..\psake\psake.psm1"
+
+.EXAMPLE
+ipmo d:\psake-contrib\debugging.psm1; Show-TasksDependencies d:\UdpLogViewer\psake-build.ps1 -taskList Full -psakeModuleFile d:\psake\psake.psm1
+
+Shows what tasks are called when Full task is specified during Invoke-Psake buildfile Full
+#>
 	param(
 		[Parameter(Position=0, Mandatory=$true)]
 		[string]
 		$psakefile,
 		[Parameter(Position=1, Mandatory=$false)]
-    	[string[]]$taskList = @()
+		[string[]]$taskList = @(),
+		[Parameter(Position=2, Mandatory=$false)]
+		[string]
+		$psakeModuleFile="$PsscriptRoot\..\psake\psake.psm1"
 	)
-	if (!(Get-Module powerboots)) {
-		Write-Error "Module powerboots is not found. You have to import it first"
-		return
-	}
 	Add-Type -path  "$PSScriptRoot\lib\NodeXl\Microsoft.GLEE.dll"
 	Add-Type -path  "$PSScriptRoot\lib\NodeXl\Microsoft.NodeXL.Algorithms.dll"
 	Add-Type -path  "$PSScriptRoot\lib\NodeXl\Microsoft.NodeXL.Control.Wpf.dll"
@@ -44,19 +65,22 @@ function Show-TasksDependencies
 	}
 	
 	function Get-TaskGraph {
-		$m = Import-Module "$PsscriptRoot\..\psake\psake.psm1" -pass
+		$m = Import-Module $psakeModuleFile -pass
 		& $m { 
 			$script:dependencies = New-Object Collections.ArrayList
 			
 			${function:Write-TaskTimeSummary} = {}
-			$function:ExecuteTask = {
+			${function:Invoke-Task} = {
 				param($taskName) 
+				write-host Task $taskname
 				$taskKey = $taskName.ToLower()
-				$task = $script:context.Peek().tasks.$taskKey
+				$currentContext = $psake.context.Peek()
+        $tasks = $currentContext.tasks
+        $task = $tasks.$taskKey
 				foreach($childTask in $task.DependsOn)
 				{
 					[void]$dependencies.Add((New-Object PSObject -Property @{Parent=$taskName; DependsOn=$childTask }))
-					ExecuteTask $childTask
+					Invoke-Task $childTask
 				}
 			}
 		}
@@ -79,7 +103,12 @@ function Show-TasksDependencies
 		New-Edge $c.Graph.Edges $vertices[$_.Parent] $vertices[$_.DependsOn] > $null
 	}
 	
-	Boots {	
-		$c
-	} -width 400 -heigh 400 -On_Loaded { $c.DrawGraphAsync($true) }
+	$window = New-Object Windows.Window
+  $window.Title = "Invoke-Psake build visualizer"
+  $window.Content = $c
+  $window.Width,$window.Height = 400,400
+  $window.Left, $window.Top = 10,10
+  $window.TopMost = $true
+  $window.Add_Loaded({ $c.DrawGraphAsync($true) })
+  $null = $window.ShowDialog()
 }
