@@ -7,7 +7,7 @@ param(
 $script:nunit = $nunitPath
 Write-Host "Nunit path set to $nunitPath"
 
-function nunit 
+function nunit
 {
     param(
         [Parameter(Position=0,Mandatory=$true)]
@@ -28,12 +28,12 @@ function nunit
     )
     $tempFile = "$env:TEMP\psake-nunit.xml"
     if (test-path $tempFile) { Get-Item $tempFile | Remove-Item  } #Remove-Item $tempFile doesn't work because my temp is C:\Users\J34EF~1.STE\AppData\Local\Temp
-    
+
     $param = @()
     if ($Include.Count -gt 0) { $param += '/include:'+($Include -join ',') }
     if ($Exclude.Count -gt 0) { $param += '/exclude:'+($Exclude -join ',') }
     if ($NoShadow)            { $param += '/noshadow' }
-    
+
     Write-Debug "output xml file: $tempFile"
     $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
     $output = & $nunit $assembly /nologo /xml:$tempFile @param
@@ -41,7 +41,7 @@ function nunit
         $output | Out-Host
     }
     $stopwatch.stop()
-    
+
     $ret = new-Object PsObject -prop @{
         Assembly   = $assembly
         Failed     = $false
@@ -60,11 +60,11 @@ function nunit
             $ret.Error = 'No output file was created'
             return $ret
         }
-        # when silent, normal output is not written, but then it is not clear what caused the error 
+        # when silent, normal output is not written, but then it is not clear what caused the error
         # so we will parse the xml and show the failing test
         $res = [xml](gc $tempFile)
-        $failed = $res | 
-            Select-Xml -XPath '//test-case' | 
+        $failed = $res |
+            Select-Xml -XPath '//test-case' |
             Select-Object -ExpandProperty Node |
             ? { $_.success -eq "false" } |
             % { $ret.FailedTestCases += new-Object PsObject -prop @{
@@ -81,7 +81,7 @@ function nunit
         $ret.Total = $res.Total
         $ret.Failures = $res.Failures # should be 0
         $ret.Errors = $res.Errors # should be 0
-        $ret.NotRun = $res.'Not-Run' 
+        $ret.NotRun = $res.'Not-Run'
     }
     $ret
 }
@@ -89,18 +89,18 @@ function nunit
 function Write-NunitRes
 {
     param([Parameter(Mandatory=$true)][PsObject]$res)
-    
+
     if ($res.Failed) {
         Write-ScriptError "Some Nunit tests failed:"
-        $res.FailedTestCases | 
+        $res.FailedTestCases |
             % { Write-Host "------------------------------------"
-                Write-Host Name:`n $_.Name 
+                Write-Host Name:`n $_.Name
                 Write-Host Statk trace:`n $_.StackTrace
                 Write-Host Message:`n $_.Messsage
                 Write-Host
               }
     }
-    Write-Host "Total:         " $res.Total 
+    Write-Host "Total:         " $res.Total
     Write-Host "Errors         " $res.Errors
     Write-Host "Failures       " $res.Failures
     Write-Host "NotRun:        " $res.NotRun
