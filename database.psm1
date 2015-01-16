@@ -2,31 +2,31 @@ function Invoke-SqlCommand {
   [cmdletbinding(DefaultParameterSetName='customauth')]
   param(
       [Parameter(Mandatory=$false)]
-      [string] 
+      [string]
       $sqlServer = ".\SQLEXPRESS",
-      
+
       [Parameter(Mandatory=$false)]
-      [string] 
+      [string]
       $database = "Northwind",
-      
-      [Parameter(Mandatory=$true)]   
-      [string] 
+
+      [Parameter(Mandatory=$true)]
+      [string]
       $sqlCommand,
-      
+
       [Parameter(Mandatory=$false, ParameterSetName='credauth')]
-      [System.Management.Automation.PsCredential] 
+      [System.Management.Automation.PsCredential]
       $credential,
-      
+
       [Parameter(Mandatory=$false, ParameterSetName='customauth')]
-      [string] 
+      [string]
       $authentication ="Integrated Security=SSPI;",
-      
+
       [Parameter(ParameterSetName='devauth')]
       [switch]
       $developmentAuthentication
     )
 
-  switch ($PsCmdlet.ParameterSetName) { 
+  switch ($PsCmdlet.ParameterSetName) {
     'devauth' {
       $authentication = 'User ID=sa;Password=pass'
       Write-Debug "Using development authentication: $authentication"

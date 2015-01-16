@@ -1,9 +1,9 @@
-# takes one parameter and somehow notifies user; It could be email, growl message, output to file... 
+# takes one parameter and somehow notifies user; It could be email, growl message, output to file...
 [scriptblock]$script:Notifier = {}
 # todo: read output from xml
 
 function Set-SvnNotifier {
-	param(	
+	param(
 		[Parameter(Mandatory=$true)][scriptblock]$notifier
 	)
 	$script:Notifier = $notifier
@@ -16,7 +16,7 @@ function Get-SvnInfo
 	)
 	$info = svn info $dir
 	$ret = new-object PSObject
-	$info | % { 
+	$info | % {
 		if ($_ -match '^Revision')            { $ret | Add-Member NoteProperty Revision ($_ -replace 'Revision[\s:]*','') }
 		if ($_ -match '^Last Changed Author') { $ret | Add-Member NoteProperty Author ($_ -replace 'Last Changed Author[\s:]*','') }
 		if ($_ -match '^Last Changed Date')   { $ret | Add-Member NoteProperty Date ($_ -replace 'Last Changed Date[\s:]*','') }
@@ -28,15 +28,15 @@ function Update-Svn
 {
 	param(
 		[Parameter(Mandatory=$true)][string]$dir,
-		[switch]$gui, 
+		[switch]$gui,
 		[switch]$Wait
 	)
 	$info = Get-SvnInfo $dir
 	if ($gui) {
 		Start-Process TortoiseProc.exe -Argument "/command:update", "/path:`"$dir`"" -wait:$wait
 	} else {
-		svn update $dir | 
-		% { 
+		svn update $dir |
+		% {
 			$m = $_
 			switch -regex ($m) {
 				'^(Updated to|At revision)' { write-host $m }
@@ -58,7 +58,7 @@ function Update-Svn
 			$_.Info | % { write-host "    $_" }
 		}
 	}
-	# more colors: 
+	# more colors:
 	#"Black, DarkBlue, DarkGreen, DarkCyan, DarkRed, DarkMagenta, DarkYellow, Gray, DarkGray, Blue, Green, Cyan, Red, Magenta, Yellow, White" -split ', '|% { write-host $_ -fore $_ }
 }
 
@@ -82,12 +82,12 @@ function Get-SvnLogInfos
 		$line = $_
 		switch -regex ($_) {
 			'^(-*|\s*)$'               { return }
-			'^r\d+\s*\|\s*[\w\.]+\s\|' { 
+			'^r\d+\s*\|\s*[\w\.]+\s\|' {
 				if ($header -ne $null) { $ret += $header }
-				$header = new-object PSObject -property @{Header = $line; Info = @() } 
+				$header = new-object PSObject -property @{Header = $line; Info = @() }
 			}
-			default                    { 
-				$header.Info += $line 
+			default                    {
+				$header.Info += $line
 			}
 		}
 	}
